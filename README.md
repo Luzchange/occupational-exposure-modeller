@@ -1,10 +1,11 @@
-# Occupational Exposure Modeller (IHMOD 2.0 Suite)
+# Occupational exposure modeling (IHMOD 2.0 &amp; ACGIH 2025 TLV / NIOSH NPG Suite)
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg)](LICENSE)
 [![Platform: Web & Android](https://img.shields.io/badge/Platform-Web%20%7C%20Android%20APK-brightgreen.svg)]()
 [![Standard: AIHA IHMOD 2.0](https://img.shields.io/badge/Standard-AIHA%20IHMOD%202.0-orange.svg)]()
+[![Database: ACGIH 2025 & NIOSH NPG](https://img.shields.io/badge/Database-ACGIH%202025%20TLV%20%7C%20NIOSH%20NPG-blueviolet.svg)]()
 
-**Occupational Exposure Modeller** is a cross-platform (Responsive Web & Android APK) industrial hygiene exposure assessment suite. It is a full modern conversion and enhancement of AIHA's renowned **IHMOD 2.0** spreadsheet model, bringing deterministic mathematical air modeling, generation rate estimation, and probabilistic Monte Carlo risk simulation to any web browser and mobile device—**completely offline with zero dependencies**.
+**Occupational exposure modeling** is a cross-platform (Responsive Web & Android APK) industrial hygiene exposure assessment suite. It is a full modern conversion and enhancement of AIHA's renowned **IHMOD 2.0** spreadsheet model, bringing deterministic mathematical air modeling, generation rate estimation, probabilistic Monte Carlo risk simulation, and an **offline chemical hazard database directly incorporating the 2025 ACGIH TLVs® and BEIs® as well as the NIOSH Pocket Guide to Chemical Hazards (NPG)**—**100% offline with zero dependencies**.
 
 ---
 
@@ -53,12 +54,31 @@
   - **Category 4**: $> 100\%$ of OEL (Uncontrolled / Immediate Engineering Controls Required)
 - High-performance Canvas histogram visualization with OEL cutoff threshold and exceedance coloring.
 
-### 6. Chemical Database & Physical Properties
-- Pre-populated library of **36 common industrial chemicals** (Acetone, Benzene, Toluene, Xylenes, Methylene Chloride, Trichloroethylene, n-Hexane, MEK, Styrene, Formaldehyde, etc.).
-- Includes CAS numbers, Molecular Weight, Vapor Pressure at 20°C, Liquid Density, OSHA PEL, ACGIH TLV-TWA, Short-Term Exposure Limits (STEL), and NIOSH REL.
-- Instant chemical lookup auto-fills physical properties and OEL thresholds across all models.
+### 6. Offline Chemical Database (ACGIH 2025 TLVs® & NIOSH Pocket Guide)
+The app embeds a comprehensive chemical database bundled locally (`chemicalDatabase.js`) providing **100% offline access** in the field without internet:
+- **ACGIH 2025 TLVs® & BEIs®**:
+  - 8-hour TWA, 15-minute STEL, and Ceiling limits
+  - ACGIH Notations: Skin, DSEN (Dermal Sensitization), RSEN (Respiratory Sensitization), OTO (Ototoxicity), and Carcinogenicity (A1 Confirmed Human, A2 Suspected Human, A3 Animal, A4 Not Classifiable, A5 Not Suspected)
+  - TLV Basis / Critical Health Effects (e.g. URT irritation, CNS impairment, neuropathy, liver/kidney damage)
+  - Biological Exposure Indices (BEI®) determinative parameters (e.g., S-Phenylmercapturic acid for Benzene, o-Cresol for Toluene)
+- **NIOSH Pocket Guide to Chemical Hazards (NPG)**:
+  - CAS, RTECS, and DOT ID numbers
+  - Molecular weight, boiling point, vapor pressure at 20°C, liquid density, flash point, and LEL/UEL
+  - NIOSH Recommended Exposure Limits (RELs) and Carcinogen (`Ca`) classifications
+  - OSHA Permissible Exposure Limits (PELs)
+  - NIOSH Immediately Dangerous to Life or Health (IDLH) levels
+  - Primary exposure routes, signs & symptoms, and target organs
+  - Personal protective equipment, first aid, and respirator selection codes
+- **Instant Search & Filter**: Filter by keyword, CAS #, carcinogens, ototoxicants, skin notations, or BEIs, with a one-click **"Model this Chemical"** button.
 
-### 7. Unit Converters & Reporting
+### 7. ACGIH Special Guidelines & Work Shift Calculators
+- **ACGIH Appendix E (Additive Mixture Formula)**: Calculates the cumulative mixture exposure index $\sum \frac{C_i}{T_i}$ for chemicals affecting the same organ systems and evaluates compliance ($\le 1.0$).
+- **ACGIH Appendix H (Reciprocal Calculation Method - RCP)**: Evaluates Group Guidance Values for complex refined hydrocarbon vapor mixtures ($GGV_{mix} = \frac{1}{\sum (F_i / GGV_i)}$) with official ACGIH rounding criteria.
+- **Extended Work Shifts (Brief & Scala Model)**: Adjusts 8-hour TLV-TWAs for extended work days (> 8 hrs/day) or extended work weeks (> 40 hrs/week):
+  $$F_{daily} = \frac{8}{h} \left(\frac{24 - h}{16}\right), \quad F_{weekly} = \frac{40}{h_w} \left(\frac{168 - h_w}{128}\right)$$
+- **ACGIH 2025 Physical Agents Reference**: Quick reference tables for Audible Sound TLVs (85 dBA criteria, 3 dB exchange rate), Heat Stress WBGT screening criteria, and Hand-Arm Vibration (HAVS) limits.
+
+### 8. Unit Converters & Reporting
 - **Inhalation Unit Conversions**: Real-time bidirectional conversion between $\text{ppm}$ and $\text{mg/m}^3$ at standard or non-standard ambient temperature and pressure.
 - **Ventilation Conversions**: Real-time conversion between Air Changes per Hour ($\text{ACH}$), volumetric flow ($\text{m}^3/\text{min}$), and Cubic Feet per Minute ($\text{CFM}$).
 - **Scenario Management**: Export/import scenarios to/from JSON to save and archive exposure assessments.
@@ -72,12 +92,12 @@
 ### Option A: Android APK (Mobile / Tablet)
 A pre-compiled standalone Android APK is available directly in the root directory:
 ```
-OccupationalExposureModeller.apk
+OccupationalExposureModeling.apk
 ```
 - Minimum Android Version: Android 7.0 (API Level 24)
 - Target Android Version: Android 15 / 16 (API Level 36)
 - **Offline & Standalone**: Zero network access required. Runs entirely on-device with hardware-accelerated rendering.
-- Sideloading: Copy `OccupationalExposureModeller.apk` to your Android device, tap to install, and allow "Install from Unknown Sources".
+- Sideloading: Copy `OccupationalExposureModeling.apk` to your Android device, tap to install, and allow "Install from Unknown Sources".
 
 ### Option B: Web App (Desktop / Browser / Air-Gapped Laptops)
 The web application is pure HTML5, CSS3, and ES6 JavaScript with **zero external CDN dependencies**:
@@ -114,11 +134,14 @@ android/app/build/outputs/apk/debug/app-debug.apk
 
 ## 📚 References & Scientific Basis
 1. **AIHA (American Industrial Hygiene Association)**: *Mathematical Models for Estimating Occupational Exposure to Chemicals* (2nd Edition), edited by Charles B. Keil, Catherine E. Simmons, and Thomas R. Nicas.
-2. **Fehrenbacher, M. C., & Hummel, A. A. (1996)**: *Evaluation of the Mass Transfer Coefficient for Evaporation of Organic Solvents*. American Industrial Hygiene Association Journal, 57(4), 352-355.
-3. **Mackay, D., & Matsugu, R. S. (1973)**: *Evaporation rates of liquid hydrocarbon spills on land and water*. The Canadian Journal of Chemical Engineering, 51(4), 434-439.
-4. **Jayjock, M. A., & Armstrong, T. W. (2000)**: *Application of Industrial Hygiene Exposure Models in Risk Assessment*. Applied Occupational and Environmental Hygiene.
+2. **ACGIH® (2025)**: *TLVs® and BEIs®: Threshold Limit Values for Chemical Substances and Physical Agents & Biological Exposure Indices*. ACGIH, Cincinnati, OH.
+3. **NIOSH (2024)**: *Pocket Guide to Chemical Hazards (NPG)*. National Institute for Occupational Safety and Health, Centers for Disease Control and Prevention (CDC).
+4. **Fehrenbacher, M. C., & Hummel, A. A. (1996)**: *Evaluation of the Mass Transfer Coefficient for Evaporation of Organic Solvents*. American Industrial Hygiene Association Journal, 57(4), 352-355.
+5. **Mackay, D., & Matsugu, R. S. (1973)**: *Evaporation rates of liquid hydrocarbon spills on land and water*. The Canadian Journal of Chemical Engineering, 51(4), 434-439.
+6. **Brief, R. S., & Scala, R. A. (1975)**: *Occupational exposure limits for novel work schedules*. American Industrial Hygiene Association Journal, 36(6), 467-469.
 
 ---
 
 ## 📄 License
 This project is released under the **MIT License**.
+

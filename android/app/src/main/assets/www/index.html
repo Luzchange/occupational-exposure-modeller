@@ -3,7 +3,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-  <title>Occupational Exposure Modeller</title>
+  <title>Occupational exposure modeling</title>
   <link rel="stylesheet" href="style.css">
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#1e3a8a">
@@ -15,8 +15,8 @@
     <div class="brand">
       <div class="brand-icon">IH</div>
       <div>
-        <h1>Occupational Exposure Modeller</h1>
-        <p>AIHA IHMOD 2.0 Inhalation Exposure Suite</p>
+        <h1>Occupational exposure modeling</h1>
+        <p>Inhalation Modeling • ACGIH 2025 TLVs &amp; NIOSH Pocket Guide</p>
       </div>
     </div>
     <div class="header-actions">
@@ -43,7 +43,8 @@
     <button class="tab-btn" data-tab="tab-eddy">💨 Turbulent Diffusion</button>
     <button class="tab-btn" data-tab="tab-generation">⚗️ Emission Estimator</button>
     <button class="tab-btn" data-tab="tab-montecarlo">🎲 Monte Carlo</button>
-    <button class="tab-btn" data-tab="tab-chemdatabase">🧪 Chemicals & Units</button>
+    <button class="tab-btn" data-tab="tab-chemdatabase">🧪 Chemical Guide (TLV &amp; NPG)</button>
+    <button class="tab-btn" data-tab="tab-acgih">📐 ACGIH &amp; Work Shifts</button>
     <button class="tab-btn" data-tab="tab-report">📋 Executive Report</button>
   </nav>
 
@@ -673,81 +674,292 @@
       </div>
     </section>
 
-    <!-- ==================== TAB 6: CHEMICALS & UNITS ==================== -->
+    <!-- ==================== TAB 6: CHEMICAL GUIDE (TLV & NPG) ==================== -->
     <section id="tab-chemdatabase" class="tab-content" style="display: none;">
-      <div class="panel-grid">
+      <div class="panel-grid" style="grid-template-columns: 1fr 1fr;">
+        <!-- Left: Search, Filter, and Chemical Table -->
         <div class="control-col">
           <div class="card">
-            <div class="card-title">Unit Conversion Tools</div>
-
-            <div class="form-group">
-              <label class="form-label"><span>Concentration: ppm ⇄ mg/m³</span></label>
-              <div class="input-row">
-                <input type="number" id="unit-c-val" class="form-input" value="50" step="1">
-                <select id="unit-c-dir" class="form-select">
-                  <option value="ppm2mg">ppm ➔ mg/m³</option>
-                  <option value="mg2ppm">mg/m³ ➔ ppm</option>
-                </select>
-              </div>
-              <div style="font-size: 12px; margin-top: 6px; font-weight: 600; color: #1e40af;" id="unit-c-result">
-                Result: -
-              </div>
-            </div>
-
-            <div class="form-group">
-              <label class="form-label"><span>Ventilation: ACH ⇄ m³/min</span></label>
-              <div class="input-row">
-                <input type="number" id="unit-q-val" class="form-input" value="6" step="0.5">
-                <select id="unit-q-dir" class="form-select">
-                  <option value="ach2m3">ACH ➔ m³/min</option>
-                  <option value="m32ach">m³/min ➔ ACH</option>
-                </select>
-              </div>
-              <div style="font-size: 11px; color: #6b7280; margin-top: 4px;">Based on current Room Volume V = <span id="unit-q-vol">100</span> m³</div>
-              <div style="font-size: 12px; margin-top: 6px; font-weight: 600; color: #1e40af;" id="unit-q-result">
-                Result: 10.0 m³/min
-              </div>
-            </div>
-
-            <div class="form-group">
-              <label class="form-label"><span>Flow Rate: CFM ⇄ m³/min</span></label>
-              <div class="input-row">
-                <input type="number" id="unit-cfm-val" class="form-input" value="350" step="10">
-                <select id="unit-cfm-dir" class="form-select">
-                  <option value="cfm2m3">CFM ➔ m³/min</option>
-                  <option value="m32cfm">m³/min ➔ CFM</option>
-                </select>
-              </div>
-              <div style="font-size: 12px; margin-top: 6px; font-weight: 600; color: #1e40af;" id="unit-cfm-result">
-                Result: 9.91 m³/min
-              </div>
-            </div>
-          </div>
-        </div>
-
-        <div class="output-col">
-          <div class="card">
             <div class="card-title">
-              <span>Industrial Chemicals Database</span>
-              <input type="text" id="chem-search-input" class="form-input" placeholder="Search chemical or CAS..." style="width: 220px; font-size: 12px;">
+              <span>ACGIH 2025 TLVs &amp; NIOSH Pocket Guide Library</span>
             </div>
-            <div style="max-height: 480px; overflow-y: auto;">
-              <table class="data-table">
+            
+            <div style="margin-bottom: 12px; display: flex; gap: 8px;">
+              <input type="text" id="chem-search-input" class="form-input" placeholder="🔍 Search chemical name, CAS #, or synonym..." style="font-size: 13px;">
+            </div>
+
+            <!-- Quick Filter Chips -->
+            <div style="display: flex; flex-wrap: wrap; gap: 6px; margin-bottom: 12px;">
+              <button class="btn btn-sm btn-outline active-filter-chip" id="filter-all">All</button>
+              <button class="btn btn-sm btn-outline" id="filter-carc">Carcinogens (A1/A2/Ca)</button>
+              <button class="btn btn-sm btn-outline" id="filter-oto">Ototoxic (OTO)</button>
+              <button class="btn btn-sm btn-outline" id="filter-skin">Skin Notation</button>
+              <button class="btn btn-sm btn-outline" id="filter-bei">BEI Available</button>
+            </div>
+
+            <div style="max-height: 520px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 6px;">
+              <table class="data-table" style="font-size: 12px;">
                 <thead>
                   <tr>
-                    <th>Chemical Name</th>
+                    <th>Chemical</th>
                     <th>CAS</th>
-                    <th>MW</th>
-                    <th>VP (20°C)</th>
-                    <th>PEL (ppm)</th>
-                    <th>TLV (ppm)</th>
-                    <th>Action</th>
+                    <th>ACGIH TLV</th>
+                    <th>OSHA PEL</th>
+                    <th>Select</th>
                   </tr>
                 </thead>
                 <tbody id="chem-table-body">
                   <!-- Rendered dynamically -->
                 </tbody>
               </table>
+            </div>
+          </div>
+
+          <!-- Unit Conversion Utility Card -->
+          <div class="card" style="margin-top: 16px;">
+            <div class="card-title">Unit Conversion Utilities</div>
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 12px;">
+              <div>
+                <label class="form-label"><span>ppm ⇄ mg/m³</span></label>
+                <div class="input-row">
+                  <input type="number" id="unit-c-val" class="form-input" value="50" step="1">
+                  <select id="unit-c-dir" class="form-select">
+                    <option value="ppm2mg">ppm ➔ mg/m³</option>
+                    <option value="mg2ppm">mg/m³ ➔ ppm</option>
+                  </select>
+                </div>
+                <div style="font-size: 12px; margin-top: 4px; font-weight: 600; color: #1e40af;" id="unit-c-result">
+                  Result: -
+                </div>
+              </div>
+              <div>
+                <label class="form-label"><span>CFM ⇄ m³/min</span></label>
+                <div class="input-row">
+                  <input type="number" id="unit-cfm-val" class="form-input" value="350" step="10">
+                  <select id="unit-cfm-dir" class="form-select">
+                    <option value="cfm2m3">CFM ➔ m³/min</option>
+                    <option value="m32cfm">m³/min ➔ CFM</option>
+                  </select>
+                </div>
+                <div style="font-size: 12px; margin-top: 4px; font-weight: 600; color: #1e40af;" id="unit-cfm-result">
+                  Result: 9.91 m³/min
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Comprehensive Chemical Detail Factsheet Card -->
+        <div class="output-col">
+          <div class="card" id="chem-detail-card">
+            <div style="display: flex; justify-content: space-between; align-items: flex-start; border-bottom: 2px solid #e2e8f0; padding-bottom: 12px; margin-bottom: 12px;">
+              <div>
+                <h3 id="cd-name" style="font-size: 18px; color: #1e3a8a; margin: 0;">-</h3>
+                <div id="cd-synonyms" style="font-size: 11px; color: #64748b; margin-top: 3px;">-</div>
+              </div>
+              <button class="btn btn-primary btn-sm" id="btn-load-into-models">
+                📥 Model this Chemical
+              </button>
+            </div>
+
+            <!-- Identifiers & Physical Properties -->
+            <div style="display: grid; grid-template-columns: repeat(3, 1fr); gap: 8px; margin-bottom: 14px;">
+              <div class="metric-card" style="padding: 8px;">
+                <div class="metric-title">CAS Registry #</div>
+                <div class="metric-value" id="cd-cas" style="font-size: 13px;">-</div>
+              </div>
+              <div class="metric-card" style="padding: 8px;">
+                <div class="metric-title">Molecular Weight</div>
+                <div class="metric-value" id="cd-mw" style="font-size: 13px;">-</div>
+                <div class="metric-unit">g / mol</div>
+              </div>
+              <div class="metric-card" style="padding: 8px;">
+                <div class="metric-title">Vapor Pressure (20°C)</div>
+                <div class="metric-value" id="cd-vp" style="font-size: 13px;">-</div>
+                <div class="metric-unit">mmHg</div>
+              </div>
+              <div class="metric-card" style="padding: 8px;">
+                <div class="metric-title">Boiling Point</div>
+                <div class="metric-value" id="cd-bp" style="font-size: 12px;">-</div>
+              </div>
+              <div class="metric-card" style="padding: 8px;">
+                <div class="metric-title">Liquid Density</div>
+                <div class="metric-value" id="cd-density" style="font-size: 12px;">-</div>
+                <div class="metric-unit">g / cm³</div>
+              </div>
+              <div class="metric-card" style="padding: 8px;">
+                <div class="metric-title">Flammability (LEL/UEL)</div>
+                <div class="metric-value" id="cd-flam" style="font-size: 12px;">-</div>
+              </div>
+            </div>
+
+            <!-- Exposure Limits & Critical Health Effects -->
+            <div style="background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 6px; padding: 12px; margin-bottom: 12px;">
+              <h4 style="font-size: 13px; color: #1e40af; margin-bottom: 8px;">Official Exposure Limits</h4>
+              <table class="data-table" style="font-size: 12px; background: #fff;">
+                <tbody>
+                  <tr>
+                    <td style="font-weight: 600; width: 35%;">ACGIH 2025 TLV:</td>
+                    <td id="cd-tlv">-</td>
+                  </tr>
+                  <tr>
+                    <td style="font-weight: 600;">ACGIH Notations:</td>
+                    <td id="cd-notations">-</td>
+                  </tr>
+                  <tr>
+                    <td style="font-weight: 600;">TLV Critical Effects Basis:</td>
+                    <td id="cd-tlv-basis">-</td>
+                  </tr>
+                  <tr>
+                    <td style="font-weight: 600;">ACGIH 2025 BEI:</td>
+                    <td id="cd-bei">-</td>
+                  </tr>
+                  <tr>
+                    <td style="font-weight: 600;">NIOSH REL:</td>
+                    <td id="cd-rel">-</td>
+                  </tr>
+                  <tr>
+                    <td style="font-weight: 600;">OSHA PEL:</td>
+                    <td id="cd-pel">-</td>
+                  </tr>
+                  <tr>
+                    <td style="font-weight: 600;">NIOSH IDLH:</td>
+                    <td id="cd-idlh" style="color: #b91c1c; font-weight: 600;">-</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- Health Hazards, Symptoms & PPE (NIOSH NPG) -->
+            <div style="font-size: 12px; line-height: 1.5; color: #334155;">
+              <div style="margin-bottom: 8px;">
+                <strong style="color: #1e3a8a;">Exposure Routes:</strong>
+                <span id="cd-routes">-</span>
+              </div>
+              <div style="margin-bottom: 8px;">
+                <strong style="color: #1e3a8a;">Signs &amp; Symptoms:</strong>
+                <span id="cd-symptoms">-</span>
+              </div>
+              <div style="margin-bottom: 8px;">
+                <strong style="color: #1e3a8a;">Target Organs:</strong>
+                <span id="cd-organs">-</span>
+              </div>
+              <div style="margin-bottom: 8px;">
+                <strong style="color: #1e3a8a;">NIOSH Respirator Selection:</strong>
+                <span id="cd-respirator" style="font-family: monospace; font-size: 11px;">-</span>
+              </div>
+              <div>
+                <strong style="color: #1e3a8a;">First Aid:</strong>
+                <span id="cd-firstaid">-</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== TAB 7: ACGIH GUIDELINES & WORK SHIFTS ==================== -->
+    <section id="tab-acgih" class="tab-content" style="display: none;">
+      <div class="panel-grid">
+        <!-- Left: Mixture & Shift Adjustment Calculators -->
+        <div class="control-col">
+          <!-- ACGIH Appendix E: Additive Mixture Calculator -->
+          <div class="card">
+            <div class="card-title">ACGIH Appendix E: Additive Mixture Calculator</div>
+            <p style="font-size: 11px; color: #64748b; margin-bottom: 10px;">
+              Formula: \(\sum \frac{C_i}{T_i} \le 1.0\) (Additive effects on similar organ systems).
+            </p>
+            <div id="mixture-rows-container">
+              <!-- Dynamically populated mixture rows -->
+            </div>
+            <div style="display: flex; gap: 8px; margin-top: 10px;">
+              <button class="btn btn-outline btn-sm" id="btn-add-mix-row">+ Add Component</button>
+              <button class="btn btn-primary btn-sm" id="btn-calc-mixture">Calculate Mixture Index</button>
+            </div>
+            <div id="mix-result-box" style="margin-top: 12px; padding: 10px; border-radius: 6px; display: none;">
+              <!-- Verdict rendered via JS -->
+            </div>
+          </div>
+
+          <!-- Extended Work Shifts: Brief & Scala Model -->
+          <div class="card" style="margin-top: 16px;">
+            <div class="card-title">Extended Work Shifts: Brief &amp; Scala Model</div>
+            <p style="font-size: 11px; color: #64748b; margin-bottom: 10px;">
+              Adjusts 8-hour TLV-TWA for extended shifts (> 8 hrs/day or > 40 hrs/week).
+            </p>
+            <div class="form-group">
+              <label class="form-label"><span>Shift Duration (Daily Hours)</span></label>
+              <input type="number" id="shift-daily-hrs" class="form-input" value="12" min="8" max="24" step="0.5">
+            </div>
+            <div class="form-group">
+              <label class="form-label"><span>Weekly Work Hours</span></label>
+              <input type="number" id="shift-weekly-hrs" class="form-input" value="48" min="40" max="120" step="1">
+            </div>
+            <div class="form-group">
+              <label class="form-label"><span>Baseline 8-Hour TLV-TWA (ppm or mg/m³)</span></label>
+              <input type="number" id="shift-base-tlv" class="form-input" value="50" min="0" step="1">
+            </div>
+            <button class="btn btn-primary btn-block" id="btn-calc-shift">Calculate Adjusted Exposure Limit</button>
+            <div id="shift-result-box" style="margin-top: 12px; padding: 10px; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 6px; display: none;">
+              <!-- Result rendered via JS -->
+            </div>
+          </div>
+        </div>
+
+        <!-- Right: Hydrocarbon RCP & Physical Agents -->
+        <div class="output-col">
+          <!-- ACGIH Appendix H: Reciprocal Calculation Method (RCP) -->
+          <div class="card">
+            <div class="card-title">ACGIH Appendix H: Reciprocal Calculation Method (RCP)</div>
+            <p style="font-size: 11px; color: #64748b; margin-bottom: 10px;">
+              Calculates guidance values for refined hydrocarbon vapor mixtures: \(GGV_{mix} = \frac{1}{\sum (F_i / GGV_i)}\).
+            </p>
+            <div id="rcp-fractions-container">
+              <!-- Dynamically populated RCP rows -->
+            </div>
+            <div style="display: flex; gap: 8px; margin-top: 10px;">
+              <button class="btn btn-outline btn-sm" id="btn-add-rcp-row">+ Add Fraction</button>
+              <button class="btn btn-primary btn-sm" id="btn-calc-rcp">Calculate Mixture GGV</button>
+            </div>
+            <div id="rcp-result-box" style="margin-top: 12px; padding: 10px; background: #f8fafc; border: 1px solid #cbd5e1; border-radius: 6px; display: none;">
+              <!-- Result rendered via JS -->
+            </div>
+          </div>
+
+          <!-- Physical Agents Reference (ACGIH 2025) -->
+          <div class="card" style="margin-top: 16px;">
+            <div class="card-title">ACGIH 2025 Physical Agents Reference</div>
+            
+            <div style="margin-bottom: 12px;">
+              <h4 style="font-size: 13px; color: #1e3a8a; margin-bottom: 6px;">Audible Sound / Noise TLV (Table 1 - 3 dB Exchange Rate)</h4>
+              <div style="max-height: 160px; overflow-y: auto; border: 1px solid #e2e8f0; border-radius: 4px;">
+                <table class="data-table" style="font-size: 11px;">
+                  <thead>
+                    <tr><th>Duration per Day</th><th>Sound Level (dBA)</th></tr>
+                  </thead>
+                  <tbody>
+                    <tr><td>24 hours</td><td>80 dBA</td></tr>
+                    <tr><td>16 hours</td><td>82 dBA</td></tr>
+                    <tr><td><strong>8 hours (Baseline TLV)</strong></td><td><strong>85 dBA</strong></td></tr>
+                    <tr><td>4 hours</td><td>88 dBA</td></tr>
+                    <tr><td>2 hours</td><td>91 dBA</td></tr>
+                    <tr><td>1 hour</td><td>94 dBA</td></tr>
+                    <tr><td>30 minutes</td><td>97 dBA</td></tr>
+                    <tr><td>15 minutes</td><td>100 dBA</td></tr>
+                    <tr><td>7.5 minutes</td><td>103 dBA</td></tr>
+                    <tr><td>0.08 seconds (Max ceiling)</td><td>140 dBA</td></tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+
+            <div>
+              <h4 style="font-size: 13px; color: #1e3a8a; margin-bottom: 6px;">Hand-Arm Vibration (HAVS) &amp; Heat Stress</h4>
+              <ul style="font-size: 12px; line-height: 1.6; color: #475569; padding-left: 18px;">
+                <li><strong>HAVS TLV:</strong> 8-hour equivalent acceleration \(A(8) = 5.0 \, \text{m/s}^2\); Action Limit \(AL = 2.5 \, \text{m/s}^2\).</li>
+                <li><strong>Heat Stress:</strong> Acclimatized continuous work screening threshold: Light = \(31.0^\circ\text{C}\), Moderate = \(28.0^\circ\text{C}\) WBGT.</li>
+                <li><strong>Hand Activity Level (HAL):</strong> \(NPF_{TLV} = 0.56(10 - HAL)\).</li>
+              </ul>
             </div>
           </div>
         </div>

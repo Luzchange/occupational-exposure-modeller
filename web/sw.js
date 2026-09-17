@@ -1,9 +1,10 @@
-const CACHE_NAME = 'ihmod-app-v1';
+const CACHE_NAME = 'oem-app-v2';
 const ASSETS = [
   './',
   './index.html',
   './style.css',
   './engine.js',
+  './chemicalDatabase.js',
   './chartEngine.js',
   './app.js',
   './manifest.json'

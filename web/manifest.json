@@ -1,11 +1,11 @@
 {
-  "name": "Occupational Exposure Modeller",
-  "short_name": "ExposureModeller",
+  "name": "Occupational exposure modeling",
+  "short_name": "ExposureModeling",
   "start_url": "./index.html",
   "display": "standalone",
   "background_color": "#1e3a8a",
   "theme_color": "#1e3a8a",
-  "description": "Industrial Hygiene Indoor Air Quality and Chemical Exposure Modeling Suite based on AIHA IHMOD 2.0.",
+  "description": "Occupational exposure modeling - Inhalation exposure suite featuring ACGIH 2025 TLVs/BEIs and NIOSH Pocket Guide offline library.",
   "icons": [
     {
       "src": "icon-192.png",

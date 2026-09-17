@@ -1,5 +1,5 @@
 /**
- * Occupational Exposure Modeller - Main Application Controller
+ * Occupational exposure modeling - Main Application Controller
  * Handles UI events, state synchronization, calculations, charting, and exports.
  */
 
@@ -11,7 +11,8 @@ import {
   TwoZoneModel,
   TurbulentDiffusion,
   GenerationRateEstimators,
-  MonteCarloEngine
+  MonteCarloEngine,
+  AcgihGuidelines
 } from './engine.js';
 
 import { ModellerChart } from './chartEngine.js';
@@ -19,7 +20,8 @@ import { ModellerChart } from './chartEngine.js';
 // Application State
 const state = {
   activeTab: 'tab-wmr',
-  activeChem: CHEMICAL_DATABASE[28], // Toluene by default
+  activeChem: CHEMICAL_DATABASE.find(c => c.name.toLowerCase().includes('toluene')) || CHEMICAL_DATABASE[0],
+  inspectedChem: null,
   lastSimulation: null,
   charts: {}
 };
@@ -35,6 +37,7 @@ document.addEventListener('DOMContentLoaded', () => {
   initGenerationEvents();
   initMonteCarloEvents();
   initChemicalTableAndUnits();
+  initAcgihGuidelinesAndShifts();
   initExportAndReport();
 
   // Run initial simulation
@@ -687,39 +690,159 @@ function runMonteCarloCalc() {
 }
 
 /* ----------------------------------------------------
-   TAB 6: Chemicals & Units
+   TAB 6: Chemical Guide (ACGIH 2025 TLVs & NIOSH NPG)
 ---------------------------------------------------- */
 function initChemicalTableAndUnits() {
   const tbody = document.getElementById('chem-table-body');
   const searchInput = document.getElementById('chem-search-input');
+  let currentFilter = 'all';
 
-  function renderTable(filter = '') {
+  state.inspectedChem = state.activeChem;
+  renderChemicalDetails(state.inspectedChem);
+
+  function matchesFilter(c, filterType) {
+    if (filterType === 'all') return true;
+    if (filterType === 'carc') {
+      const notat = c.acgihNotations || '';
+      return notat.includes('A1') || notat.includes('A2') || c.nioshCa;
+    }
+    if (filterType === 'oto') {
+      return (c.acgihNotations || '').includes('OTO');
+    }
+    if (filterType === 'skin') {
+      return (c.acgihNotations || '').includes('Skin');
+    }
+    if (filterType === 'bei') {
+      return !!c.acgihBei;
+    }
+    return true;
+  }
+
+  function renderTable(searchTerm = '') {
     tbody.innerHTML = '';
-    const q = filter.toLowerCase().trim();
-    const filtered = CHEMICAL_DATABASE.filter(c =>
-      c.name.toLowerCase().includes(q) || c.cas.toLowerCase().includes(q)
-    );
+    const q = searchTerm.toLowerCase().trim();
+    const filtered = CHEMICAL_DATABASE.filter(c => {
+      const matchSearch = !q ||
+        c.name.toLowerCase().includes(q) ||
+        c.cas.toLowerCase().includes(q) ||
+        (c.synonyms && c.synonyms.toLowerCase().includes(q));
+      return matchSearch && matchesFilter(c, currentFilter);
+    });
+
+    if (filtered.length === 0) {
+      const tr = document.createElement('tr');
+      tr.innerHTML = `<td colspan="5" style="text-align: center; color: #9ca3af; padding: 20px;">No chemicals match criteria</td>`;
+      tbody.appendChild(tr);
+      return;
+    }
 
     filtered.forEach(c => {
+      const isSelected = state.inspectedChem && state.inspectedChem.cas === c.cas;
       const tr = document.createElement('tr');
+      if (isSelected) tr.classList.add('selected-chem-row');
+      tr.style.cursor = 'pointer';
+
+      const tlvText = c.acgihTlvTwa != null ? `${c.acgihTlvTwa} ppm` : (c.acgihTlvC != null ? `C ${c.acgihTlvC}` : 'N/A');
+      const pelText = c.oshaPelTwa != null ? `${c.oshaPelTwa} ppm` : (c.oshaPelC != null ? `C ${c.oshaPelC}` : 'N/A');
+
       tr.innerHTML = `
-        <td><strong>${c.name}</strong></td>
-        <td>${c.cas}</td>
-        <td>${c.mw}</td>
-        <td>${c.vp20}</td>
-        <td>${c.oelPel || 'N/A'}</td>
-        <td>${c.oelTlv || 'N/A'}</td>
         <td>
-          <button class="btn btn-outline btn-sm select-chem-btn">Select</button>
+          <div style="font-weight: 600; color: #1e3a8a;">${c.name}</div>
+          <div style="font-size: 10px; color: #64748b;">${c.synonyms ? c.synonyms.split(',')[0] : ''}</div>
+        </td>
+        <td><code>${c.cas}</code></td>
+        <td>${tlvText}</td>
+        <td>${pelText}</td>
+        <td>
+          <button class="btn btn-outline btn-sm view-chem-btn" style="padding: 2px 8px; font-size: 11px;">View</button>
         </td>
       `;
-      tr.querySelector('.select-chem-btn').addEventListener('click', () => {
-        setActiveChemical(c);
-        document.querySelector('.tab-btn[data-tab="tab-wmr"]').click();
+
+      tr.addEventListener('click', () => {
+        state.inspectedChem = c;
+        renderChemicalDetails(c);
+        renderTable(searchInput.value);
       });
+
       tbody.appendChild(tr);
     });
   }
+
+  function renderChemicalDetails(c) {
+    if (!c) return;
+    document.getElementById('cd-name').textContent = c.name;
+    document.getElementById('cd-synonyms').textContent = c.synonyms ? `Synonyms: ${c.synonyms}` : '';
+    document.getElementById('cd-cas').textContent = c.cas;
+    document.getElementById('cd-mw').textContent = c.mw;
+    document.getElementById('cd-vp').textContent = c.vp20 != null ? c.vp20 : 'N/A';
+    document.getElementById('cd-bp').textContent = c.bp || 'N/A';
+    document.getElementById('cd-density').textContent = c.density != null ? c.density : 'N/A';
+    document.getElementById('cd-flam').textContent = (c.lel && c.uel) ? `${c.lel}% - ${c.uel}%` : 'N/A';
+
+    // Exposure limits
+    const tlvParts = [];
+    if (c.acgihTlvTwa != null) tlvParts.push(`TWA: ${c.acgihTlvTwa} ppm`);
+    if (c.acgihTlvStel != null) tlvParts.push(`STEL: ${c.acgihTlvStel} ppm`);
+    if (c.acgihTlvC != null) tlvParts.push(`Ceiling: ${c.acgihTlvC} ppm`);
+    document.getElementById('cd-tlv').textContent = tlvParts.length ? tlvParts.join(', ') : 'Not established';
+
+    document.getElementById('cd-notations').textContent = c.acgihNotations || 'None';
+    document.getElementById('cd-tlv-basis').textContent = c.acgihTlvBasis || 'N/A';
+    document.getElementById('cd-bei').textContent = c.acgihBei || 'None established';
+
+    const relParts = [];
+    if (c.nioshRelTwa != null) relParts.push(`TWA: ${c.nioshRelTwa} ppm`);
+    if (c.nioshRelStel != null) relParts.push(`STEL: ${c.nioshRelStel} ppm`);
+    if (c.nioshRelC != null) relParts.push(`Ceiling: ${c.nioshRelC} ppm`);
+    if (c.nioshCa) relParts.push(`[Ca - Carcinogen]`);
+    document.getElementById('cd-rel').textContent = relParts.length ? relParts.join(', ') : 'Not established';
+
+    const pelParts = [];
+    if (c.oshaPelTwa != null) pelParts.push(`TWA: ${c.oshaPelTwa} ppm`);
+    if (c.oshaPelStel != null) pelParts.push(`STEL: ${c.oshaPelStel} ppm`);
+    if (c.oshaPelC != null) pelParts.push(`Ceiling: ${c.oshaPelC} ppm`);
+    document.getElementById('cd-pel').textContent = pelParts.length ? pelParts.join(', ') : 'Not established';
+
+    document.getElementById('cd-idlh').textContent = c.idlh || 'N.D.';
+
+    // Health effects
+    document.getElementById('cd-routes').textContent = c.routes || 'Inhalation, Skin contact';
+    document.getElementById('cd-symptoms').textContent = c.symptoms || 'See MSDS / Safety Data Sheet';
+    document.getElementById('cd-organs').textContent = c.targetOrgans || 'Respiratory system, eyes, skin';
+    document.getElementById('cd-respirator').textContent = c.respirator || 'NIOSH approved respirator based on air concentration';
+    document.getElementById('cd-firstaid').textContent = c.firstAid || 'Eye: Flush immediately; Skin: Wash thoroughly; Inhalation: Fresh air, respiratory support.';
+  }
+
+  // Model this chemical button
+  document.getElementById('btn-load-into-models').addEventListener('click', () => {
+    if (state.inspectedChem) {
+      setActiveChemical(state.inspectedChem);
+      document.querySelector('.tab-btn[data-tab="tab-wmr"]').click();
+    }
+  });
+
+  // Filter chips setup
+  const chips = [
+    { id: 'filter-all', type: 'all' },
+    { id: 'filter-carc', type: 'carc' },
+    { id: 'filter-oto', type: 'oto' },
+    { id: 'filter-skin', type: 'skin' },
+    { id: 'filter-bei', type: 'bei' }
+  ];
+
+  chips.forEach(chip => {
+    const el = document.getElementById(chip.id);
+    if (!el) return;
+    el.addEventListener('click', () => {
+      chips.forEach(c => {
+        const btn = document.getElementById(c.id);
+        if (btn) btn.classList.remove('active-filter-chip');
+      });
+      el.classList.add('active-filter-chip');
+      currentFilter = chip.type;
+      renderTable(searchInput.value);
+    });
+  });
 
   renderTable();
   searchInput.addEventListener('input', (e) => renderTable(e.target.value));
@@ -729,36 +852,18 @@ function initChemicalTableAndUnits() {
   const cDir = document.getElementById('unit-c-dir');
   function updateCConv() {
     const v = Number(cVal.value) || 0;
-    const chem = state.activeChem;
+    const chem = state.inspectedChem || state.activeChem;
     if (cDir.value === 'ppm2mg') {
       const mg = Units.ppmToMgM3(v, chem.mw);
-      document.getElementById('unit-c-result').textContent = `${v} ppm = ${mg.toFixed(2)} mg/m³`;
+      document.getElementById('unit-c-result').textContent = `${v} ppm = ${mg.toFixed(2)} mg/m³ (${chem.name})`;
     } else {
       const ppm = Units.mgM3ToPpm(v, chem.mw);
-      document.getElementById('unit-c-result').textContent = `${v} mg/m³ = ${ppm.toFixed(2)} ppm`;
+      document.getElementById('unit-c-result').textContent = `${v} mg/m³ = ${ppm.toFixed(2)} ppm (${chem.name})`;
     }
   }
   cVal.addEventListener('input', updateCConv);
   cDir.addEventListener('change', updateCConv);
   updateCConv();
-
-  const qVal = document.getElementById('unit-q-val');
-  const qDir = document.getElementById('unit-q-dir');
-  function updateQConv() {
-    const v = Number(qVal.value) || 0;
-    const roomV = Number(document.getElementById('wmr-V').value) || 100;
-    document.getElementById('unit-q-vol').textContent = roomV;
-    if (qDir.value === 'ach2m3') {
-      const q = Units.achToM3Min(v, roomV);
-      document.getElementById('unit-q-result').textContent = `${v} ACH = ${q.toFixed(2)} m³/min`;
-    } else {
-      const ach = Units.m3MinToAch(v, roomV);
-      document.getElementById('unit-q-result').textContent = `${v} m³/min = ${ach.toFixed(2)} ACH`;
-    }
-  }
-  qVal.addEventListener('input', updateQConv);
-  qDir.addEventListener('change', updateQConv);
-  updateQConv();
 
   const cfmVal = document.getElementById('unit-cfm-val');
   const cfmDir = document.getElementById('unit-cfm-dir');
@@ -775,6 +880,158 @@ function initChemicalTableAndUnits() {
   cfmVal.addEventListener('input', updateCfmConv);
   cfmDir.addEventListener('change', updateCfmConv);
   updateCfmConv();
+}
+
+/* ----------------------------------------------------
+   TAB 7: ACGIH Guidelines, Mixture & Work Shifts
+---------------------------------------------------- */
+function initAcgihGuidelinesAndShifts() {
+  // Mixture rows container
+  const mixContainer = document.getElementById('mixture-rows-container');
+  const btnAddMix = document.getElementById('btn-add-mix-row');
+  const btnCalcMix = document.getElementById('btn-calc-mixture');
+  const mixResultBox = document.getElementById('mix-result-box');
+
+  const defaultMixture = [
+    { name: "Toluene", conc: 6, limit: 20 },
+    { name: "Methyl ethyl ketone (MEK)", conc: 35, limit: 75 },
+    { name: "Xylene (mixed isomers)", conc: 4, limit: 20 }
+  ];
+
+  function renderMixtureRow(item = { name: '', conc: 10, limit: 50 }) {
+    const row = document.createElement('div');
+    row.className = 'mix-row';
+    row.style.cssText = 'display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 8px; margin-bottom: 8px; align-items: center;';
+    row.innerHTML = `
+      <input type="text" class="form-input mix-name" placeholder="Substance name" value="${item.name}">
+      <input type="number" class="form-input mix-conc" placeholder="Conc (Ci)" value="${item.conc}" min="0" step="0.1">
+      <input type="number" class="form-input mix-limit" placeholder="TLV (Ti)" value="${item.limit}" min="0.001" step="0.1">
+      <button class="btn btn-outline btn-sm mix-remove" style="color: #ef4444; padding: 4px 8px;">✕</button>
+    `;
+    row.querySelector('.mix-remove').addEventListener('click', () => {
+      row.remove();
+    });
+    mixContainer.appendChild(row);
+  }
+
+  defaultMixture.forEach(m => renderMixtureRow(m));
+
+  btnAddMix.addEventListener('click', () => {
+    renderMixtureRow({ name: '', conc: 5, limit: 50 });
+  });
+
+  btnCalcMix.addEventListener('click', () => {
+    const rows = mixContainer.querySelectorAll('.mix-row');
+    const components = [];
+    rows.forEach(r => {
+      const name = r.querySelector('.mix-name').value.trim() || 'Component';
+      const conc = Number(r.querySelector('.mix-conc').value) || 0;
+      const limit = Number(r.querySelector('.mix-limit').value) || 1;
+      components.push({ name, conc, limit });
+    });
+
+    const res = AcgihGuidelines.calcAdditiveMixture(components);
+    mixResultBox.style.display = 'block';
+
+    if (res.exceeded) {
+      mixResultBox.style.background = '#fef2f2';
+      mixResultBox.style.border = '1px solid #f87171';
+      mixResultBox.innerHTML = `
+        <div style="font-weight: 700; color: #b91c1c; font-size: 14px;">⚠️ Mixture Index: ${res.index.toFixed(2)} &gt; 1.0 (THRESHOLD EXCEEDED)</div>
+        <div style="font-size: 12px; color: #7f1d1d; margin-top: 4px;">
+          The combined additive exposure exceeds the permissible mixture threshold. Engineering controls or respiratory protection required.
+        </div>
+      `;
+    } else {
+      mixResultBox.style.background = '#ecfdf5';
+      mixResultBox.style.border = '1px solid #34d399';
+      mixResultBox.innerHTML = `
+        <div style="font-weight: 700; color: #047857; font-size: 14px;">✅ Mixture Index: ${res.index.toFixed(2)} ≤ 1.0 (COMPLIANT)</div>
+        <div style="font-size: 12px; color: #065f46; margin-top: 4px;">
+          The additive mixture exposure is within acceptable health protection limits.
+        </div>
+      `;
+    }
+  });
+
+  // Extended Work Shifts (Brief & Scala)
+  const btnCalcShift = document.getElementById('btn-calc-shift');
+  const shiftResultBox = document.getElementById('shift-result-box');
+
+  btnCalcShift.addEventListener('click', () => {
+    const dailyHrs = Number(document.getElementById('shift-daily-hrs').value) || 8;
+    const weeklyHrs = Number(document.getElementById('shift-weekly-hrs').value) || 40;
+    const baseTlv = Number(document.getElementById('shift-base-tlv').value) || 50;
+
+    const res = AcgihGuidelines.calcBriefScalaSchedules(baseTlv, dailyHrs, weeklyHrs);
+    shiftResultBox.style.display = 'block';
+    shiftResultBox.innerHTML = `
+      <div style="font-size: 13px; font-weight: 700; color: #1e3a8a; margin-bottom: 6px;">
+        Brief &amp; Scala Adjusted Exposure Limit:
+      </div>
+      <div style="font-size: 20px; font-weight: 800; color: #1e40af; margin-bottom: 8px;">
+        ${res.adjustedOel.toFixed(2)} <span style="font-size: 13px; font-weight: 400; color: #64748b;">(Baseline: ${baseTlv})</span>
+      </div>
+      <table class="data-table" style="font-size: 11px;">
+        <tr><td>Daily Shift:</td><td>${res.dailyHours} hrs/day</td><td>Daily Factor F_d:</td><td><strong>${res.dailyFactor.toFixed(3)}</strong></td></tr>
+        <tr><td>Weekly Schedule:</td><td>${res.weeklyHours} hrs/wk</td><td>Weekly Factor F_w:</td><td><strong>${res.weeklyFactor.toFixed(3)}</strong></td></tr>
+        <tr><td colspan="2">Applied Reduction Factor:</td><td colspan="2"><strong>${res.appliedFactor.toFixed(3)}</strong></td></tr>
+      </table>
+    `;
+  });
+
+  // Hydrocarbon RCP Container
+  const rcpContainer = document.getElementById('rcp-fractions-container');
+  const btnAddRcp = document.getElementById('btn-add-rcp-row');
+  const btnCalcRcp = document.getElementById('btn-calc-rcp');
+  const rcpResultBox = document.getElementById('rcp-result-box');
+
+  const defaultRcp = [
+    { name: "C9-C11 Aliphatics", frac: 0.60, ggv: 1200 },
+    { name: "C9-C10 Aromatics", frac: 0.40, ggv: 100 }
+  ];
+
+  function renderRcpRow(item = { name: '', frac: 0.5, ggv: 600 }) {
+    const row = document.createElement('div');
+    row.className = 'rcp-row';
+    row.style.cssText = 'display: grid; grid-template-columns: 2fr 1fr 1fr auto; gap: 8px; margin-bottom: 8px; align-items: center;';
+    row.innerHTML = `
+      <input type="text" class="form-input rcp-name" placeholder="Fraction description" value="${item.name}">
+      <input type="number" class="form-input rcp-frac" placeholder="Mass Fraction Fi (0-1)" value="${item.frac}" min="0" max="1" step="0.05">
+      <input type="number" class="form-input rcp-ggv" placeholder="GGVi (mg/m³)" value="${item.ggv}" min="1" step="25">
+      <button class="btn btn-outline btn-sm rcp-remove" style="color: #ef4444; padding: 4px 8px;">✕</button>
+    `;
+    row.querySelector('.rcp-remove').addEventListener('click', () => row.remove());
+    rcpContainer.appendChild(row);
+  }
+
+  defaultRcp.forEach(r => renderRcpRow(r));
+  btnAddRcp.addEventListener('click', () => renderRcpRow({ name: '', frac: 0.2, ggv: 600 }));
+
+  btnCalcRcp.addEventListener('click', () => {
+    const rows = rcpContainer.querySelectorAll('.rcp-row');
+    const fractions = [];
+    rows.forEach(r => {
+      const fraction = Number(r.querySelector('.rcp-frac').value) || 0;
+      const ggv = Number(r.querySelector('.rcp-ggv').value) || 1;
+      fractions.push({ fraction, ggv });
+    });
+
+    const res = AcgihGuidelines.calcHydrocarbonRcp(fractions);
+    rcpResultBox.style.display = 'block';
+    rcpResultBox.innerHTML = `
+      <div style="font-size: 13px; font-weight: 700; color: #1e3a8a; margin-bottom: 6px;">
+        Mixture Group Guidance Value (GGV_mixture):
+      </div>
+      <div style="font-size: 22px; font-weight: 800; color: #059669; margin-bottom: 6px;">
+        ${res.ggvRounded} mg/m³ <span style="font-size: 13px; font-weight: 400; color: #64748b;">(Exact: ${res.ggvRaw.toFixed(1)} mg/m³)</span>
+      </div>
+      <div style="font-size: 11px; color: #64748b;">
+        Total Liquid Mass Fraction Accounted For: <strong>${(res.totalFraction * 100).toFixed(1)}%</strong>.
+        Rounded per ACGIH Appendix H guidance criteria.
+      </div>
+    `;
+  });
 }
 
 /* ----------------------------------------------------

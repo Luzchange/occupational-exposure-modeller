@@ -10,47 +10,22 @@ const R_L_ATM = 0.082057338; // L * atm / (mol * K)
 const R_L_MMHG = 62.36367;   // L * mmHg / (mol * K)
 const MOLAR_VOL_STP = 24.45; // L/mol at 25°C, 1 atm
 
+import { COMPREHENSIVE_CHEMICAL_DATABASE, ACGIH_PHYSICAL_AGENTS } from './chemicalDatabase.js';
+
+export { ACGIH_PHYSICAL_AGENTS };
+
 /**
- * 36 Common Workplace Industrial Chemicals Database
+ * Normalized Chemical Database
+ * Ingests ACGIH 2025 TLVs/BEIs and NIOSH Pocket Guide data with backward-compatible aliases.
  */
-export const CHEMICAL_DATABASE = [
-  { name: "Acetone", cas: "67-64-1", mw: 58.08, vp20: 185.5, density: 0.791, oelPel: 1000, oelTlv: 250, oelStel: 500, oelRel: 250 },
-  { name: "Acetonitrile", cas: "75-05-8", mw: 41.05, vp20: 72.8, density: 0.786, oelPel: 40, oelTlv: 20, oelStel: 60, oelRel: 20 },
-  { name: "Benzene", cas: "71-43-2", mw: 78.11, vp20: 75.2, density: 0.879, oelPel: 1, oelTlv: 0.5, oelStel: 5, oelRel: 0.1 },
-  { name: "1-Butanol (n-Butanol)", cas: "71-36-3", mw: 74.12, vp20: 5.5, density: 0.810, oelPel: 100, oelTlv: 20, oelStel: 50, oelRel: 50 },
-  { name: "2-Butanol (sec-Butanol)", cas: "78-92-2", mw: 74.12, vp20: 12.5, density: 0.806, oelPel: 150, oelTlv: 100, oelStel: 150, oelRel: 100 },
-  { name: "n-Butyl Acetate", cas: "123-86-4", mw: 116.16, vp20: 11.5, density: 0.882, oelPel: 150, oelTlv: 50, oelStel: 150, oelRel: 150 },
-  { name: "Carbon Tetrachloride", cas: "56-23-5", mw: 153.82, vp20: 91.3, density: 1.594, oelPel: 10, oelTlv: 5, oelStel: 10, oelRel: 2 },
-  { name: "Chloroform", cas: "67-66-3", mw: 119.38, vp20: 160.0, density: 1.489, oelPel: 50, oelTlv: 10, oelStel: 50, oelRel: 2 },
-  { name: "Cyclohexane", cas: "110-82-7", mw: 84.16, vp20: 77.5, density: 0.779, oelPel: 300, oelTlv: 100, oelStel: 300, oelRel: 300 },
-  { name: "1,4-Dioxane", cas: "123-91-1", mw: 88.11, vp20: 29.0, density: 1.033, oelPel: 100, oelTlv: 20, oelStel: 100, oelRel: 1 },
-  { name: "Ethanol", cas: "64-17-5", mw: 46.07, vp20: 44.0, density: 0.789, oelPel: 1000, oelTlv: 1000, oelStel: 1000, oelRel: 1000 },
-  { name: "Ethyl Acetate", cas: "141-78-6", mw: 88.11, vp20: 73.0, density: 0.902, oelPel: 400, oelTlv: 400, oelStel: 400, oelRel: 400 },
-  { name: "Ethylbenzene", cas: "100-41-4", mw: 106.17, vp20: 7.1, density: 0.867, oelPel: 100, oelTlv: 20, oelStel: 125, oelRel: 100 },
-  { name: "Diethyl Ether", cas: "60-29-7", mw: 74.12, vp20: 442.0, density: 0.713, oelPel: 400, oelTlv: 400, oelStel: 500, oelRel: 400 },
-  { name: "Formaldehyde", cas: "50-00-0", mw: 30.03, vp20: 3260.0, density: 0.815, oelPel: 0.75, oelTlv: 0.1, oelStel: 2, oelRel: 0.016 },
-  { name: "n-Heptane", cas: "142-82-5", mw: 100.20, vp20: 35.5, density: 0.684, oelPel: 500, oelTlv: 400, oelStel: 500, oelRel: 85 },
-  { name: "n-Hexane", cas: "110-54-3", mw: 86.18, vp20: 121.0, density: 0.655, oelPel: 500, oelTlv: 50, oelStel: 500, oelRel: 50 },
-  { name: "Isoamyl Alcohol", cas: "123-51-3", mw: 88.15, vp20: 2.8, density: 0.810, oelPel: 100, oelTlv: 100, oelStel: 125, oelRel: 100 },
-  { name: "Isobutanol", cas: "78-83-1", mw: 74.12, vp20: 9.0, density: 0.803, oelPel: 100, oelTlv: 50, oelStel: 100, oelRel: 50 },
-  { name: "Isopropanol (IPA)", cas: "67-63-0", mw: 60.10, vp20: 33.0, density: 0.786, oelPel: 400, oelTlv: 200, oelStel: 400, oelRel: 400 },
-  { name: "Methanol", cas: "67-56-1", mw: 32.04, vp20: 96.0, density: 0.792, oelPel: 200, oelTlv: 200, oelStel: 250, oelRel: 200 },
-  { name: "Methyl Ethyl Ketone (MEK)", cas: "78-93-3", mw: 72.11, vp20: 77.5, density: 0.805, oelPel: 200, oelTlv: 200, oelStel: 300, oelRel: 200 },
-  { name: "Methyl Isobutyl Ketone (MIBK)", cas: "108-10-1", mw: 100.16, vp20: 16.0, density: 0.801, oelPel: 100, oelTlv: 20, oelStel: 75, oelRel: 50 },
-  { name: "Methylene Chloride (DCM)", cas: "75-09-2", mw: 84.93, vp20: 350.0, density: 1.326, oelPel: 25, oelTlv: 50, oelStel: 125, oelRel: 25 },
-  { name: "Perchloroethylene", cas: "127-18-4", mw: 165.83, vp20: 14.0, density: 1.623, oelPel: 100, oelTlv: 25, oelStel: 100, oelRel: 25 },
-  { name: "Propylene Glycol Monomethyl Ether", cas: "107-98-2", mw: 90.12, vp20: 11.0, density: 0.923, oelPel: 100, oelTlv: 50, oelStel: 100, oelRel: 100 },
-  { name: "Styrene", cas: "100-42-5", mw: 104.15, vp20: 5.0, density: 0.906, oelPel: 100, oelTlv: 10, oelStel: 20, oelRel: 50 },
-  { name: "Tetrahydrofuran (THF)", cas: "109-99-9", mw: 72.11, vp20: 143.0, density: 0.889, oelPel: 200, oelTlv: 50, oelStel: 100, oelRel: 200 },
-  { name: "Toluene", cas: "108-88-3", mw: 92.14, vp20: 22.0, density: 0.867, oelPel: 200, oelTlv: 20, oelStel: 150, oelRel: 100 },
-  { name: "1,1,1-Trichloroethane", cas: "71-55-6", mw: 133.40, vp20: 100.0, density: 1.339, oelPel: 350, oelTlv: 350, oelStel: 450, oelRel: 350 },
-  { name: "Trichloroethylene (TCE)", cas: "79-01-6", mw: 131.39, vp20: 58.0, density: 1.464, oelPel: 100, oelTlv: 10, oelStel: 25, oelRel: 25 },
-  { name: "m-Xylene", cas: "108-38-3", mw: 106.17, vp20: 6.2, density: 0.864, oelPel: 100, oelTlv: 100, oelStel: 150, oelRel: 100 },
-  { name: "o-Xylene", cas: "95-47-6", mw: 106.17, vp20: 5.0, density: 0.880, oelPel: 100, oelTlv: 100, oelStel: 150, oelRel: 100 },
-  { name: "p-Xylene", cas: "106-42-3", mw: 106.17, vp20: 6.5, density: 0.861, oelPel: 100, oelTlv: 100, oelStel: 150, oelRel: 100 },
-  { name: "Mixed Xylenes", cas: "1330-20-7", mw: 106.17, vp20: 6.0, density: 0.865, oelPel: 100, oelTlv: 100, oelStel: 150, oelRel: 100 },
-  { name: "Water (Reference)", cas: "7732-18-5", mw: 18.02, vp20: 17.5, density: 1.000, oelPel: 0, oelTlv: 0, oelStel: 0, oelRel: 0 }
-];
+export const CHEMICAL_DATABASE = COMPREHENSIVE_CHEMICAL_DATABASE.map(c => ({
+  ...c,
+  oelTlv: c.acgihTlvTwa ?? c.acgihTlvC ?? c.oshaPelTwa ?? 0,
+  oelPel: c.oshaPelTwa ?? c.oshaPelC ?? 0,
+  oelStel: c.acgihTlvStel ?? c.oshaPelStel ?? c.nioshRelStel ?? null,
+  oelRel: c.nioshRelTwa ?? c.nioshRelC ?? 0
+}));
+
 
 /**
  * Unit Conversion Utilities
@@ -805,3 +780,107 @@ export const MonteCarloEngine = {
     };
   }
 };
+
+/**
+ * ACGIH 2025 Special Assessments & Appendix Calculations
+ */
+export const AcgihGuidelines = {
+  /**
+   * Appendix E: Additive Mixture Formula
+   * Sum(C_i / T_i) <= 1
+   * @param {Array<{ conc: number, limit: number, name?: string }>} components
+   */
+  calcAdditiveMixture: (components) => {
+    let sum = 0;
+    const details = [];
+    components.forEach(c => {
+      if (c.limit > 0) {
+        const fraction = c.conc / c.limit;
+        sum += fraction;
+        details.push({
+          name: c.name || 'Component',
+          conc: c.conc,
+          limit: c.limit,
+          fraction
+        });
+      }
+    });
+    return {
+      index: sum,
+      exceeded: sum > 1.0,
+      details,
+      verdict: sum <= 1.0
+        ? `Acceptable (Mixture Index = ${sum.toFixed(2)} <= 1.0)`
+        : `EXCEEDED (Mixture Index = ${sum.toFixed(2)} > 1.0)`
+    };
+  },
+
+  /**
+   * Appendix H: Reciprocal Calculation Method (RCP) for Refined Hydrocarbons
+   * GGV_mixture = 1 / Sum(F_i / GGV_i)
+   * @param {Array<{ fraction: number, ggv: number, name?: string }>} fractions - Liquid mass fractions (0-1)
+   */
+  calcHydrocarbonRcp: (fractions) => {
+    let reciprocalSum = 0;
+    let totalFraction = 0;
+    fractions.forEach(f => {
+      totalFraction += f.fraction;
+      if (f.ggv > 0) {
+        reciprocalSum += f.fraction / f.ggv;
+      }
+    });
+
+    if (reciprocalSum === 0) return { ggvRaw: 0, ggvRounded: 0 };
+    const ggvRaw = totalFraction / reciprocalSum;
+
+    // Rounding rules from Appendix H:
+    // < 100 mg/m3: round to nearest 25
+    // 100 - 600 mg/m3: round to nearest 50
+    // > 600 mg/m3: round to nearest 200
+    let ggvRounded = ggvRaw;
+    if (ggvRaw < 100) {
+      ggvRounded = Math.round(ggvRaw / 25) * 25;
+    } else if (ggvRaw <= 600) {
+      ggvRounded = Math.round(ggvRaw / 50) * 50;
+    } else {
+      ggvRounded = Math.round(ggvRaw / 200) * 200;
+    }
+
+    return {
+      ggvRaw,
+      ggvRounded,
+      totalFraction
+    };
+  },
+
+  /**
+   * Unusual Work Schedule: Brief & Scala Model
+   * Adjusts 8-hour TLV-TWA for extended shifts (> 8 hrs/day or > 40 hrs/week)
+   * Daily: F = (8 / h) * (24 - h) / 16
+   * Weekly: F_w = (40 / h_w) * (168 - h_w) / 128
+   */
+  calcBriefScalaSchedules: (twa8Oel, dailyHours = 8, weeklyHours = 40) => {
+    let dailyFactor = 1.0;
+    if (dailyHours > 8) {
+      dailyFactor = (8 / dailyHours) * ((24 - dailyHours) / 16);
+    }
+
+    let weeklyFactor = 1.0;
+    if (weeklyHours > 40) {
+      weeklyFactor = (40 / weeklyHours) * ((168 - weeklyHours) / 128);
+    }
+
+    const appliedFactor = Math.min(dailyFactor, weeklyFactor);
+    const adjustedOel = twa8Oel * appliedFactor;
+
+    return {
+      dailyHours,
+      weeklyHours,
+      dailyFactor,
+      weeklyFactor,
+      appliedFactor,
+      adjustedOel
+    };
+  }
+};
+
