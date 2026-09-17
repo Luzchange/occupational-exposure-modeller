@@ -1,0 +1,859 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Occupational Exposure Modeller</title>
+  <link rel="stylesheet" href="style.css">
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#1e3a8a">
+</head>
+<body>
+
+  <!-- Top App Header -->
+  <header class="app-header">
+    <div class="brand">
+      <div class="brand-icon">IH</div>
+      <div>
+        <h1>Occupational Exposure Modeller</h1>
+        <p>AIHA IHMOD 2.0 Inhalation Exposure Suite</p>
+      </div>
+    </div>
+    <div class="header-actions">
+      <button class="btn btn-outline btn-sm" id="btn-export-csv" title="Export Simulation to CSV">
+        📊 Export CSV
+      </button>
+      <button class="btn btn-outline btn-sm" id="btn-save-scenario" title="Save Scenario to JSON">
+        💾 Save
+      </button>
+      <button class="btn btn-outline btn-sm" id="btn-load-scenario" title="Load Scenario from JSON">
+        📂 Load
+      </button>
+      <input type="file" id="scenario-file-input" style="display:none" accept=".json">
+      <button class="btn btn-primary btn-sm" id="btn-quick-report" title="Generate Executive Assessment Report">
+        📄 Report
+      </button>
+    </div>
+  </header>
+
+  <!-- Navigation Tabs -->
+  <nav class="nav-tabs">
+    <button class="tab-btn active" data-tab="tab-wmr">📦 Single-Zone (WMR)</button>
+    <button class="tab-btn" data-tab="tab-twozone">🎯 Two-Zone (NF/FF)</button>
+    <button class="tab-btn" data-tab="tab-eddy">💨 Turbulent Diffusion</button>
+    <button class="tab-btn" data-tab="tab-generation">⚗️ Emission Estimator</button>
+    <button class="tab-btn" data-tab="tab-montecarlo">🎲 Monte Carlo</button>
+    <button class="tab-btn" data-tab="tab-chemdatabase">🧪 Chemicals & Units</button>
+    <button class="tab-btn" data-tab="tab-report">📋 Executive Report</button>
+  </nav>
+
+  <main class="container">
+
+    <!-- Global Chemical Bar -->
+    <div class="chemical-bar">
+      <div class="chem-select-group">
+        <label for="global-chem-select">Active Chemical:</label>
+        <select id="global-chem-select" class="form-select" style="min-width: 180px;">
+          <!-- Dynamically populated -->
+        </select>
+      </div>
+      <div class="chem-details">
+        <span class="chem-badge">CAS: <strong id="bar-chem-cas">-</strong></span>
+        <span class="chem-badge">MW: <strong id="bar-chem-mw">-</strong> g/mol</span>
+        <span class="chem-badge">Vapor Press (20°C): <strong id="bar-chem-vp">-</strong> mmHg</span>
+        <span class="chem-badge">OSHA PEL: <strong id="bar-chem-pel">-</strong> ppm</span>
+        <span class="chem-badge">ACGIH TLV: <strong id="bar-chem-tlv">-</strong> ppm</span>
+        <span class="chem-badge">STEL: <strong id="bar-chem-stel">-</strong> ppm</span>
+      </div>
+    </div>
+
+    <!-- ==================== TAB 1: SINGLE-ZONE (WMR) ==================== -->
+    <section id="tab-wmr" class="tab-content active">
+      <div class="panel-grid">
+        <!-- Controls Column -->
+        <div class="control-col">
+          <div class="card">
+            <div class="card-title">
+              <span>Model Parameters</span>
+              <select id="wmr-subtype" class="form-select" style="width: auto; padding: 2px 6px; font-size: 11px;">
+                <option value="CGR">Constant Generation (CGR)</option>
+                <option value="EDG">Exponential Decay / Spill (EDG)</option>
+                <option value="Backpressure">With Backpressure (Saturation)</option>
+                <option value="Purge">Purging / Decay Only</option>
+              </select>
+            </div>
+
+            <!-- CGR / Backpressure Inputs -->
+            <div id="wmr-cgr-fields">
+              <div class="form-group">
+                <div class="form-label">
+                  <span>Emission Rate (G)</span>
+                  <span class="form-subtext">mg/min</span>
+                </div>
+                <input type="number" id="wmr-G" class="form-input" value="500" min="0" step="10">
+              </div>
+
+              <div class="form-group">
+                <div class="form-label">
+                  <span>Release Duration (tStop)</span>
+                  <span class="form-subtext">minutes</span>
+                </div>
+                <input type="number" id="wmr-tStop" class="form-input" value="60" min="1" step="5">
+              </div>
+            </div>
+
+            <!-- EDG Fields -->
+            <div id="wmr-edg-fields" style="display: none;">
+              <div class="form-group">
+                <div class="form-label">
+                  <span>Initial Spill Mass (M₀)</span>
+                  <span class="form-subtext">mg</span>
+                </div>
+                <input type="number" id="wmr-M0" class="form-input" value="50000" min="0" step="1000">
+              </div>
+
+              <div class="form-group">
+                <div class="form-label">
+                  <span>Evaporation Rate Constant (α)</span>
+                  <span class="form-subtext">min⁻¹</span>
+                </div>
+                <input type="number" id="wmr-alpha" class="form-input" value="0.03" min="0.0001" step="0.005">
+              </div>
+            </div>
+
+            <!-- Backpressure Extra Fields -->
+            <div id="wmr-backpressure-fields" style="display: none;">
+              <div class="form-group">
+                <div class="form-label">
+                  <span>Saturation Conc (Csat)</span>
+                  <span class="form-subtext">mg/m³</span>
+                </div>
+                <input type="number" id="wmr-Csat" class="form-input" value="450000" min="1">
+              </div>
+            </div>
+
+            <div class="form-group">
+              <div class="form-label">
+                <span>Room Volume (V)</span>
+                <span class="form-subtext">m³</span>
+              </div>
+              <input type="number" id="wmr-V" class="form-input" value="100" min="1" step="10">
+            </div>
+
+            <div class="form-group">
+              <div class="form-label">
+                <span>Ventilation Rate (Q)</span>
+                <span class="form-subtext" id="wmr-ach-text">ACH: 6.0</span>
+              </div>
+              <div class="input-row">
+                <input type="number" id="wmr-Q" class="form-input" value="10" min="0.01" step="1">
+                <select id="wmr-q-unit" class="form-select">
+                  <option value="m3min">m³/min</option>
+                  <option value="ach">ACH</option>
+                  <option value="cfm">CFM</option>
+                </select>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <div class="form-label">
+                <span>Initial Baseline (C₀)</span>
+                <span class="form-subtext">mg/m³</span>
+              </div>
+              <input type="number" id="wmr-C0" class="form-input" value="0" min="0" step="1">
+            </div>
+
+            <div class="form-group">
+              <div class="form-label">
+                <span>Total Shift / Evaluation Time</span>
+                <span class="form-subtext">minutes</span>
+              </div>
+              <input type="number" id="wmr-tTotal" class="form-input" value="480" min="10" step="30">
+            </div>
+
+            <button class="btn btn-primary btn-block" id="btn-calc-wmr">Run Simulation</button>
+          </div>
+        </div>
+
+        <!-- Output Column -->
+        <div class="output-col">
+          <!-- Metrics -->
+          <div class="metrics-grid">
+            <div class="metric-card">
+              <div class="metric-title">8-Hr TWA</div>
+              <div class="metric-value" id="wmr-res-twa8">-</div>
+              <div class="metric-unit" id="wmr-unit-1">mg/m³ (ppm)</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-title">15-Min STEL</div>
+              <div class="metric-value" id="wmr-res-stel">-</div>
+              <div class="metric-unit" id="wmr-unit-2">mg/m³ (ppm)</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-title">Peak Conc (Cmax)</div>
+              <div class="metric-value" id="wmr-res-cmax">-</div>
+              <div class="metric-unit" id="wmr-unit-3">mg/m³</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-title">Steady State (Css)</div>
+              <div class="metric-value" id="wmr-res-css">-</div>
+              <div class="metric-unit">mg/m³</div>
+            </div>
+          </div>
+
+          <!-- AIHA Category Verdict Box -->
+          <div id="wmr-verdict" class="verdict-box badge-cat1">
+            <span id="wmr-verdict-title">AIHA Rating: Category 1 (&lt; 10% OEL)</span>
+            <span id="wmr-verdict-ratio">Ratio: 0.04</span>
+          </div>
+
+          <!-- Chart Container -->
+          <div class="chart-container">
+            <canvas id="chart-wmr" class="chart-canvas"></canvas>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== TAB 2: TWO-ZONE (NF/FF) ==================== -->
+    <section id="tab-twozone" class="tab-content" style="display: none;">
+      <div class="panel-grid">
+        <div class="control-col">
+          <div class="card">
+            <div class="card-title">
+              <span>Two-Zone Parameters</span>
+              <select id="tz-mode" class="form-select" style="width: auto; padding: 2px 6px; font-size: 11px;">
+                <option value="CGR">Constant Generation (CGR)</option>
+                <option value="EDG">Exponential Decay (EDG)</option>
+              </select>
+            </div>
+
+            <!-- CGR Fields -->
+            <div id="tz-cgr-fields">
+              <div class="form-group">
+                <div class="form-label">
+                  <span>Emission Rate into NF (G)</span>
+                  <span class="form-subtext">mg/min</span>
+                </div>
+                <input type="number" id="tz-G" class="form-input" value="300" min="0" step="10">
+              </div>
+
+              <div class="form-group">
+                <div class="form-label">
+                  <span>Release Duration (tStop)</span>
+                  <span class="form-subtext">minutes</span>
+                </div>
+                <input type="number" id="tz-tStop" class="form-input" value="120" min="1" step="10">
+              </div>
+            </div>
+
+            <!-- EDG Fields -->
+            <div id="tz-edg-fields" style="display: none;">
+              <div class="form-group">
+                <div class="form-label">
+                  <span>Initial Spill Mass (M₀)</span>
+                  <span class="form-subtext">mg</span>
+                </div>
+                <input type="number" id="tz-M0" class="form-input" value="30000" min="0" step="1000">
+              </div>
+              <div class="form-group">
+                <div class="form-label">
+                  <span>Decay Rate (α)</span>
+                  <span class="form-subtext">min⁻¹</span>
+                </div>
+                <input type="number" id="tz-alpha" class="form-input" value="0.02" min="0.0001" step="0.005">
+              </div>
+            </div>
+
+            <div class="input-row">
+              <div class="form-group">
+                <div class="form-label">
+                  <span>NF Volume (V_NF)</span>
+                  <span class="form-subtext">m³</span>
+                </div>
+                <input type="number" id="tz-V_NF" class="form-input" value="6.0" min="0.1" step="0.5">
+              </div>
+              <div class="form-group">
+                <div class="form-label">
+                  <span>FF Volume (V_FF)</span>
+                  <span class="form-subtext">m³</span>
+                </div>
+                <input type="number" id="tz-V_FF" class="form-input" value="94.0" min="1" step="5">
+              </div>
+            </div>
+
+            <div class="form-group">
+              <div class="form-label">
+                <span>Interzonal Airflow (β)</span>
+                <span class="form-subtext">m³/min</span>
+              </div>
+              <div class="input-row">
+                <input type="number" id="tz-beta" class="form-input" value="12.0" min="0.1" step="0.5">
+                <button type="button" class="btn btn-outline btn-sm" id="btn-calc-beta">β Helper</button>
+              </div>
+            </div>
+
+            <!-- Beta Helper Popover (Collapsible) -->
+            <div id="beta-helper-box" class="card" style="display: none; background: #f0fdf4; border-color: #bbf7d0; padding: 10px; margin-bottom: 12px;">
+              <div style="font-weight: 600; font-size: 11px; margin-bottom: 6px;">β = ½ × Air Speed × Free Surface Area</div>
+              <div class="input-row" style="margin-bottom: 6px;">
+                <input type="number" id="beta-speed" class="form-input" placeholder="Speed (m/min)" value="10" step="1">
+                <input type="number" id="beta-radius" class="form-input" placeholder="Radius (m)" value="1.0" step="0.1">
+              </div>
+              <div style="display: flex; justify-content: space-between; align-items: center;">
+                <span style="font-size: 11px;">Calculated β: <strong id="beta-calculated">15.7 m³/min</strong></span>
+                <button type="button" class="btn btn-primary btn-sm" id="btn-apply-beta">Apply</button>
+              </div>
+            </div>
+
+            <div class="form-group">
+              <div class="form-label">
+                <span>General Room Ventilation (Q)</span>
+                <span class="form-subtext">m³/min</span>
+              </div>
+              <input type="number" id="tz-Q" class="form-input" value="15.0" min="0.1" step="1">
+            </div>
+
+            <div class="form-group">
+              <div class="form-label">
+                <span>Evaluation Time (tTotal)</span>
+                <span class="form-subtext">minutes</span>
+              </div>
+              <input type="number" id="tz-tTotal" class="form-input" value="480" min="10" step="30">
+            </div>
+
+            <button class="btn btn-primary btn-block" id="btn-calc-tz">Run Two-Zone Simulation</button>
+          </div>
+        </div>
+
+        <div class="output-col">
+          <div class="metrics-grid">
+            <div class="metric-card" style="border-left: 3px solid #dc2626;">
+              <div class="metric-title">NF 8-Hr TWA</div>
+              <div class="metric-value" id="tz-res-twa8-nf">-</div>
+              <div class="metric-unit">Near Field</div>
+            </div>
+            <div class="metric-card" style="border-left: 3px solid #2563eb;">
+              <div class="metric-title">FF 8-Hr TWA</div>
+              <div class="metric-value" id="tz-res-twa8-ff">-</div>
+              <div class="metric-unit">Far Field</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-title">NF 15-Min STEL</div>
+              <div class="metric-value" id="tz-res-stel-nf">-</div>
+              <div class="metric-unit">Near Field Peak Avg</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-title">NF Steady State</div>
+              <div class="metric-value" id="tz-res-css-nf">-</div>
+              <div class="metric-unit">G/β + G/Q</div>
+            </div>
+          </div>
+
+          <div id="tz-verdict" class="verdict-box badge-cat1">
+            <span id="tz-verdict-title">Near-Field AIHA Rating: -</span>
+            <span id="tz-verdict-ratio">Ratio: -</span>
+          </div>
+
+          <div class="chart-container">
+            <canvas id="chart-twozone" class="chart-canvas"></canvas>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== TAB 3: TURBULENT DIFFUSION ==================== -->
+    <section id="tab-eddy" class="tab-content" style="display: none;">
+      <div class="panel-grid">
+        <div class="control-col">
+          <div class="card">
+            <div class="card-title">
+              <span>Turbulent Diffusion Parameters</span>
+            </div>
+
+            <div class="form-group">
+              <div class="form-label">
+                <span>Release Type</span>
+              </div>
+              <select id="eddy-release-type" class="form-select">
+                <option value="continuous">Continuous Point Source (G)</option>
+                <option value="pulse">Instantaneous Pulse / Puff Release (M)</option>
+              </select>
+            </div>
+
+            <div id="eddy-continuous-fields">
+              <div class="form-group">
+                <div class="form-label">
+                  <span>Emission Rate (G)</span>
+                  <span class="form-subtext">mg/min</span>
+                </div>
+                <input type="number" id="eddy-G" class="form-input" value="200" min="0" step="10">
+              </div>
+            </div>
+
+            <div id="eddy-pulse-fields" style="display: none;">
+              <div class="form-group">
+                <div class="form-label">
+                  <span>Mass Released (M)</span>
+                  <span class="form-subtext">mg</span>
+                </div>
+                <input type="number" id="eddy-M" class="form-input" value="25000" min="0" step="1000">
+              </div>
+            </div>
+
+            <div class="form-group">
+              <div class="form-label">
+                <span>Turbulent Diffusivity (D)</span>
+                <span class="form-subtext">m²/s</span>
+              </div>
+              <input type="number" id="eddy-D" class="form-input" value="0.05" min="0.001" max="1.0" step="0.01">
+            </div>
+
+            <div class="form-group">
+              <div class="form-label">
+                <span>Distance from Source (r)</span>
+                <span class="form-subtext">meters</span>
+              </div>
+              <input type="number" id="eddy-r" class="form-input" value="1.5" min="0.1" step="0.1">
+            </div>
+
+            <div class="form-group">
+              <div class="form-label">
+                <span>Boundary Geometry</span>
+              </div>
+              <select id="eddy-geometry" class="form-select">
+                <option value="hemisphere">Hemispherical (Floor / Wall Source: 2π)</option>
+                <option value="sphere">Spherical (Free Air: 4π)</option>
+                <option value="corner">Corner (Dihedral: π)</option>
+                <option value="trihedral">Corner (Trihedral: π/2)</option>
+              </select>
+            </div>
+
+            <div class="input-row">
+              <div class="form-group">
+                <div class="form-label">
+                  <span>Room Q (m³/min)</span>
+                </div>
+                <input type="number" id="eddy-Q" class="form-input" value="10" min="0.1">
+              </div>
+              <div class="form-group">
+                <div class="form-label">
+                  <span>Room V (m³)</span>
+                </div>
+                <input type="number" id="eddy-V" class="form-input" value="100" min="1">
+              </div>
+            </div>
+
+            <button class="btn btn-primary btn-block" id="btn-calc-eddy">Run Diffusion Model</button>
+          </div>
+        </div>
+
+        <div class="output-col">
+          <div class="metrics-grid">
+            <div class="metric-card">
+              <div class="metric-title">Steady State at r</div>
+              <div class="metric-value" id="eddy-res-css">-</div>
+              <div class="metric-unit">mg/m³</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-title">8-Hr TWA at r</div>
+              <div class="metric-value" id="eddy-res-twa8">-</div>
+              <div class="metric-unit">mg/m³</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-title">Peak at r</div>
+              <div class="metric-value" id="eddy-res-cmax">-</div>
+              <div class="metric-unit">mg/m³</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-title">15-Min STEL</div>
+              <div class="metric-value" id="eddy-res-stel">-</div>
+              <div class="metric-unit">mg/m³</div>
+            </div>
+          </div>
+
+          <div id="eddy-verdict" class="verdict-box badge-cat1">
+            <span id="eddy-verdict-title">AIHA Rating: -</span>
+            <span id="eddy-verdict-ratio">Ratio: -</span>
+          </div>
+
+          <div class="chart-container">
+            <canvas id="chart-eddy" class="chart-canvas"></canvas>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== TAB 4: EMISSION RATE ESTIMATORS ==================== -->
+    <section id="tab-generation" class="tab-content" style="display: none;">
+      <div class="panel-grid">
+        <div class="control-col">
+          <div class="card">
+            <div class="card-title">
+              <span>Evaporation Models</span>
+              <select id="gen-model-type" class="form-select" style="width: auto; padding: 2px 6px; font-size: 11px;">
+                <option value="hummel">Hummel-Fehrenbacher Pool</option>
+                <option value="mackay">Mackay-Matsugu Pool</option>
+                <option value="massloss">Direct Mass Loss</option>
+              </select>
+            </div>
+
+            <!-- Pool Models Inputs -->
+            <div id="gen-pool-fields">
+              <div class="form-group">
+                <div class="form-label">
+                  <span>Liquid Pool Area (A)</span>
+                  <span class="form-subtext">m²</span>
+                </div>
+                <input type="number" id="gen-pool-area" class="form-input" value="0.25" min="0.001" step="0.05">
+              </div>
+
+              <div class="form-group">
+                <div class="form-label">
+                  <span>Air Velocity over Pool</span>
+                  <span class="form-subtext">m/min (typical 6–18 m/min)</span>
+                </div>
+                <input type="number" id="gen-air-speed" class="form-input" value="12" min="0.1" step="1">
+              </div>
+
+              <div class="form-group">
+                <div class="form-label">
+                  <span>Liquid Temperature</span>
+                  <span class="form-subtext">°C</span>
+                </div>
+                <input type="number" id="gen-temp" class="form-input" value="20" step="1">
+              </div>
+            </div>
+
+            <!-- Direct Mass Loss Fields -->
+            <div id="gen-massloss-fields" style="display: none;">
+              <div class="form-group">
+                <div class="form-label">
+                  <span>Measured Mass Loss</span>
+                  <span class="form-subtext">grams</span>
+                </div>
+                <input type="number" id="gen-delta-mass" class="form-input" value="50" min="0.1" step="1">
+              </div>
+              <div class="form-group">
+                <div class="form-label">
+                  <span>Duration of Loss</span>
+                  <span class="form-subtext">minutes</span>
+                </div>
+                <input type="number" id="gen-duration" class="form-input" value="30" min="0.1" step="1">
+              </div>
+            </div>
+
+            <button class="btn btn-primary btn-block" id="btn-calc-gen">Calculate Emission Rate (G)</button>
+          </div>
+        </div>
+
+        <div class="output-col">
+          <div class="card">
+            <div class="card-title">Estimated Emission Results</div>
+            <div class="metrics-grid">
+              <div class="metric-card" style="border-top: 3px solid #10b981;">
+                <div class="metric-title">Emission Rate (G)</div>
+                <div class="metric-value" id="gen-res-mgmin">-</div>
+                <div class="metric-unit">mg / min</div>
+              </div>
+              <div class="metric-card">
+                <div class="metric-title">Mass Flow</div>
+                <div class="metric-value" id="gen-res-gsec">-</div>
+                <div class="metric-unit">g / second</div>
+              </div>
+              <div class="metric-card">
+                <div class="metric-title">Mass Transfer Coeff (K)</div>
+                <div class="metric-value" id="gen-res-k">-</div>
+                <div class="metric-unit">m / s</div>
+              </div>
+            </div>
+
+            <div style="margin-top: 20px; padding: 14px; background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 6px;">
+              <h4 style="font-size: 13px; margin-bottom: 8px;">Apply Calculated G to Exposure Models:</h4>
+              <p style="font-size: 12px; color: #64748b; margin-bottom: 12px;">Transfer this emission rate directly into your room model calculations:</p>
+              <div style="display: flex; gap: 10px;">
+                <button class="btn btn-primary" id="btn-transfer-wmr">Transfer G to Well-Mixed Room (WMR)</button>
+                <button class="btn btn-outline" id="btn-transfer-tz">Transfer G to Two-Zone (NF/FF)</button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== TAB 5: MONTE CARLO ==================== -->
+    <section id="tab-montecarlo" class="tab-content" style="display: none;">
+      <div class="panel-grid">
+        <div class="control-col">
+          <div class="card">
+            <div class="card-title">
+              <span>Monte Carlo Setup</span>
+            </div>
+
+            <div class="form-group">
+              <div class="form-label"><span>Target Model</span></div>
+              <select id="mc-model" class="form-select">
+                <option value="WMR_CGR">Well-Mixed Room (CGR)</option>
+                <option value="TwoZone">Two-Zone (Near-Field / Far-Field)</option>
+                <option value="WMR_EDG">Well-Mixed Room (EDG / Spill)</option>
+              </select>
+            </div>
+
+            <div class="form-group">
+              <div class="form-label"><span>Number of Iterations</span></div>
+              <select id="mc-iterations" class="form-select">
+                <option value="1000">1,000 runs (Fast)</option>
+                <option value="2500" selected>2,500 runs (Standard)</option>
+                <option value="5000">5,000 runs (High Precision)</option>
+                <option value="10000">10,000 runs (Research)</option>
+              </select>
+            </div>
+
+            <!-- Dynamic Distribution Form for Parameters -->
+            <div id="mc-params-container">
+              <!-- Rendered via JS -->
+            </div>
+
+            <button class="btn btn-primary btn-block" id="btn-run-mc">🎲 Run Monte Carlo Simulation</button>
+          </div>
+        </div>
+
+        <div class="output-col">
+          <div class="metrics-grid">
+            <div class="metric-card">
+              <div class="metric-title">50th %ile (Median)</div>
+              <div class="metric-value" id="mc-res-p50">-</div>
+              <div class="metric-unit">mg/m³</div>
+            </div>
+            <div class="metric-card" style="border-top: 3px solid #f59e0b;">
+              <div class="metric-title">95th %ile</div>
+              <div class="metric-value" id="mc-res-p95">-</div>
+              <div class="metric-unit">mg/m³</div>
+            </div>
+            <div class="metric-card" style="border-top: 3px solid #ef4444;">
+              <div class="metric-title">% Exceeding OEL</div>
+              <div class="metric-value" id="mc-res-exceed">-</div>
+              <div class="metric-unit">% of iterations</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-title">Geometric Mean (GSD)</div>
+              <div class="metric-value" id="mc-res-gm">-</div>
+              <div class="metric-unit" id="mc-res-gsd">GSD: -</div>
+            </div>
+          </div>
+
+          <div id="mc-verdict" class="verdict-box badge-cat1">
+            <span id="mc-verdict-title">AIHA Risk Category: -</span>
+            <span id="mc-verdict-sub">Evaluation against OEL</span>
+          </div>
+
+          <!-- Histogram Chart -->
+          <div class="chart-container">
+            <canvas id="chart-mc" class="chart-canvas"></canvas>
+          </div>
+
+          <!-- Percentiles Table -->
+          <div class="card" style="margin-top: 16px;">
+            <div class="card-title">Exposure Percentiles &amp; Summary Statistics</div>
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Statistic</th>
+                  <th>Value (mg/m³)</th>
+                  <th>Value (ppm)</th>
+                  <th>% of OEL</th>
+                </tr>
+              </thead>
+              <tbody id="mc-table-body">
+                <tr><td colspan="4" style="text-align: center; color: #9ca3af;">Run simulation to populate table</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== TAB 6: CHEMICALS & UNITS ==================== -->
+    <section id="tab-chemdatabase" class="tab-content" style="display: none;">
+      <div class="panel-grid">
+        <div class="control-col">
+          <div class="card">
+            <div class="card-title">Unit Conversion Tools</div>
+
+            <div class="form-group">
+              <label class="form-label"><span>Concentration: ppm ⇄ mg/m³</span></label>
+              <div class="input-row">
+                <input type="number" id="unit-c-val" class="form-input" value="50" step="1">
+                <select id="unit-c-dir" class="form-select">
+                  <option value="ppm2mg">ppm ➔ mg/m³</option>
+                  <option value="mg2ppm">mg/m³ ➔ ppm</option>
+                </select>
+              </div>
+              <div style="font-size: 12px; margin-top: 6px; font-weight: 600; color: #1e40af;" id="unit-c-result">
+                Result: -
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label"><span>Ventilation: ACH ⇄ m³/min</span></label>
+              <div class="input-row">
+                <input type="number" id="unit-q-val" class="form-input" value="6" step="0.5">
+                <select id="unit-q-dir" class="form-select">
+                  <option value="ach2m3">ACH ➔ m³/min</option>
+                  <option value="m32ach">m³/min ➔ ACH</option>
+                </select>
+              </div>
+              <div style="font-size: 11px; color: #6b7280; margin-top: 4px;">Based on current Room Volume V = <span id="unit-q-vol">100</span> m³</div>
+              <div style="font-size: 12px; margin-top: 6px; font-weight: 600; color: #1e40af;" id="unit-q-result">
+                Result: 10.0 m³/min
+              </div>
+            </div>
+
+            <div class="form-group">
+              <label class="form-label"><span>Flow Rate: CFM ⇄ m³/min</span></label>
+              <div class="input-row">
+                <input type="number" id="unit-cfm-val" class="form-input" value="350" step="10">
+                <select id="unit-cfm-dir" class="form-select">
+                  <option value="cfm2m3">CFM ➔ m³/min</option>
+                  <option value="m32cfm">m³/min ➔ CFM</option>
+                </select>
+              </div>
+              <div style="font-size: 12px; margin-top: 6px; font-weight: 600; color: #1e40af;" id="unit-cfm-result">
+                Result: 9.91 m³/min
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="output-col">
+          <div class="card">
+            <div class="card-title">
+              <span>Industrial Chemicals Database</span>
+              <input type="text" id="chem-search-input" class="form-input" placeholder="Search chemical or CAS..." style="width: 220px; font-size: 12px;">
+            </div>
+            <div style="max-height: 480px; overflow-y: auto;">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Chemical Name</th>
+                    <th>CAS</th>
+                    <th>MW</th>
+                    <th>VP (20°C)</th>
+                    <th>PEL (ppm)</th>
+                    <th>TLV (ppm)</th>
+                    <th>Action</th>
+                  </tr>
+                </thead>
+                <tbody id="chem-table-body">
+                  <!-- Rendered dynamically -->
+                </tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ==================== TAB 7: EXECUTIVE REPORT ==================== -->
+    <section id="tab-report" class="tab-content" style="display: none;">
+      <div class="report-page">
+        <div class="report-header">
+          <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+            <div>
+              <h2 style="color: #1e3a8a; font-size: 22px;">Occupational Exposure Assessment Report</h2>
+              <p style="color: #64748b; font-size: 12px;">Deterministic &amp; Probabilistic IHMOD 2.0 Inhalation Modeling</p>
+            </div>
+            <div class="no-print">
+              <button class="btn btn-primary" onclick="window.print()">🖨️ Print / Save to PDF</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="report-section">
+          <h3>1. Assessment &amp; Substance Overview</h3>
+          <table class="data-table">
+            <tr>
+              <td style="width: 25%; font-weight: 600;">Substance / Chemical:</td>
+              <td style="width: 25%;" id="rep-chem-name">-</td>
+              <td style="width: 25%; font-weight: 600;">CAS Registry Number:</td>
+              <td style="width: 25%;" id="rep-chem-cas">-</td>
+            </tr>
+            <tr>
+              <td style="font-weight: 600;">Molecular Weight:</td>
+              <td id="rep-chem-mw">-</td>
+              <td style="font-weight: 600;">Vapor Pressure (20°C):</td>
+              <td id="rep-chem-vp">-</td>
+            </tr>
+            <tr>
+              <td style="font-weight: 600;">OSHA PEL:</td>
+              <td id="rep-chem-pel">-</td>
+              <td style="font-weight: 600;">ACGIH TLV-TWA:</td>
+              <td id="rep-chem-tlv">-</td>
+            </tr>
+          </table>
+        </div>
+
+        <div class="report-section">
+          <h3>2. Workplace Scenario Parameters</h3>
+          <table class="data-table">
+            <tr>
+              <td style="width: 25%; font-weight: 600;">Model Evaluated:</td>
+              <td style="width: 25%;" id="rep-model-name">-</td>
+              <td style="width: 25%; font-weight: 600;">Release Rate (G):</td>
+              <td style="width: 25%;" id="rep-param-g">-</td>
+            </tr>
+            <tr>
+              <td style="font-weight: 600;">Room Volume (V):</td>
+              <td id="rep-param-v">-</td>
+              <td style="font-weight: 600;">Ventilation Rate (Q):</td>
+              <td id="rep-param-q">-</td>
+            </tr>
+            <tr>
+              <td style="font-weight: 600;">Release Duration:</td>
+              <td id="rep-param-tstop">-</td>
+              <td style="font-weight: 600;">Total Evaluation Time:</td>
+              <td id="rep-param-ttotal">-</td>
+            </tr>
+          </table>
+        </div>
+
+        <div class="report-section">
+          <h3>3. Inhalation Exposure Results &amp; Compliance</h3>
+          <div class="metrics-grid">
+            <div class="metric-card">
+              <div class="metric-title">8-Hr TWA</div>
+              <div class="metric-value" id="rep-res-twa8">-</div>
+              <div class="metric-unit">mg/m³ (ppm)</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-title">15-Min STEL</div>
+              <div class="metric-value" id="rep-res-stel">-</div>
+              <div class="metric-unit">mg/m³ (ppm)</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-title">Peak Concentration</div>
+              <div class="metric-value" id="rep-res-cmax">-</div>
+              <div class="metric-unit">mg/m³</div>
+            </div>
+          </div>
+
+          <div id="rep-verdict" class="verdict-box badge-cat1" style="margin-top: 14px;">
+            <span id="rep-verdict-title">Verdict: Category 1 (Well Controlled)</span>
+            <span id="rep-verdict-ratio">Exposure is &lt; 10% of OEL</span>
+          </div>
+        </div>
+
+        <div class="report-section">
+          <h3>4. Industrial Hygiene Recommendations</h3>
+          <div id="rep-recommendations" style="font-size: 13px; line-height: 1.6; color: #374151;">
+            <!-- Generated dynamically -->
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <script type="module" src="app.js"></script>
+</body>
+</html>

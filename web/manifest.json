@@ -1,0 +1,21 @@
+{
+  "name": "Occupational Exposure Modeller",
+  "short_name": "ExposureModeller",
+  "start_url": "./index.html",
+  "display": "standalone",
+  "background_color": "#1e3a8a",
+  "theme_color": "#1e3a8a",
+  "description": "Industrial Hygiene Indoor Air Quality and Chemical Exposure Modeling Suite based on AIHA IHMOD 2.0.",
+  "icons": [
+    {
+      "src": "icon-192.png",
+      "sizes": "192x192",
+      "type": "image/png"
+    },
+    {
+      "src": "icon-512.png",
+      "sizes": "512x512",
+      "type": "image/png"
+    }
+  ]
+}
