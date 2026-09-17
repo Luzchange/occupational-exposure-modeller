@@ -4,6 +4,7 @@
 [![Platform: Web & Android](https://img.shields.io/badge/Platform-Web%20%7C%20Android%20APK-brightgreen.svg)]()
 [![Standard: AIHA IHMOD 2.0](https://img.shields.io/badge/Standard-AIHA%20IHMOD%202.0-orange.svg)]()
 [![Database: ACGIH 2025 & NIOSH NPG](https://img.shields.io/badge/Database-ACGIH%202025%20TLV%20%7C%20NIOSH%20NPG-blueviolet.svg)]()
+[![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/Luzchange/occupational-exposure-modeller)
 
 **Occupational exposure modeling** is a cross-platform (Responsive Web & Android APK) industrial hygiene exposure assessment suite. It is a full modern conversion and enhancement of AIHA's renowned **IHMOD 2.0** spreadsheet model, bringing deterministic mathematical air modeling, generation rate estimation, probabilistic Monte Carlo risk simulation, and an **offline chemical hazard database directly incorporating the 2025 ACGIH TLVs® and BEIs® as well as the NIOSH Pocket Guide to Chemical Hazards (NPG)**—**100% offline with zero dependencies**.
 
@@ -107,10 +108,31 @@ The web application is pure HTML5, CSS3, and ES6 JavaScript with **zero external
   # Python 3
   python -m http.server 8000 --directory web
 
-  # Or npx serve
-  npx serve web
+  # Or npm / npx
+  npm start
   ```
 - **PWA Ready**: Supports browser installation as a Progressive Web App (PWA) on Windows, macOS, and Linux with full offline caching via service worker (`sw.js`).
+
+### Option C: Instant Cloud Hosting on Vercel
+This repository includes a pre-configured [`vercel.json`](vercel.json) allowing seamless, zero-config deployment to Vercel:
+
+1. **One-Click Deploy**:
+   Click the button below to deploy your own instance immediately:
+   
+   [![Deploy with Vercel](https://vercel.com/button)](https://vercel.com/new/clone?repository-url=https://github.com/Luzchange/occupational-exposure-modeller)
+
+2. **Via Vercel Web Dashboard**:
+   - Go to [vercel.com/new](https://vercel.com/new).
+   - Select and import your GitHub repository: `occupational-exposure-modeller`.
+   - Click **Deploy**. Vercel automatically detects `vercel.json` (pointing output to `web/` with `buildCommand: null`), activates clean URLs, and configures security and PWA headers without requiring any manual settings.
+
+3. **Via Vercel CLI**:
+   ```bash
+   npm i -g vercel
+   vercel
+   ```
+
+*Note: The hosted Vercel site also serves the standalone `OccupationalExposureModeling.apk` binary directly through the header **📱 APK** download button!*
 
 ---
 

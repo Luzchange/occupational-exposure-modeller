@@ -1,0 +1,20 @@
+﻿{
+  "name": "occupational-exposure-modeling",
+  "version": "1.0.0",
+  "description": "Occupational Exposure Modeling Suite (IHMOD 2.0 & ACGIH 2025 TLVs / NIOSH NPG)",
+  "scripts": {
+    "dev": "npx serve web",
+    "start": "npx serve web"
+  },
+  "keywords": [
+    "industrial-hygiene",
+    "exposure-assessment",
+    "ihmod",
+    "occupational-health",
+    "chemical-safety",
+    "acgih-tlv",
+    "niosh-pocket-guide"
+  ],
+  "author": "Luzchange",
+  "license": "MIT"
+}
